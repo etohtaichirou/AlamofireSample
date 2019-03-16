@@ -26,14 +26,16 @@ struct WeblandApiManager {
             
             _ = observe(request)
                 .observeOn(MainScheduler.instance)
-                .subscribe(onSuccess: { onSuccess($0) },
-                           onError: { onError($0) })
+                .subscribe(
+                    onSuccess: { onSuccess($0) },
+                    onError: { onError($0) }
+                )
                 .disposed(by: disposeBag)
     }
     
-    // RxSwiftを導入している部分。成功/失敗いずれかしか返らないSingleにしてある。
+    // RxSwift を導入している部分。成功/失敗いずれかしか返らないSingleにしてある。
     private static func observe<T, V>(_ request: T) -> Single<V>
-        where T: BaseRequestProtocol, V: Codable, T.ResponseType == V {
+        where T: WeblandApiBaseRequestProtocol, V: Codable, T.ResponseType == V {
             
             return Single<V>.create { observer in
                 let calling = callForData(request) { response in
@@ -49,8 +51,8 @@ struct WeblandApiManager {
     }
     
     // Alamofire呼び出し部分
-    private static func callForData<T, V>(_ request: T, completion: @escaping (APIResult) -> Void) -> DataRequest
-        where T: BaseRequestProtocol, V: Codable, T.ResponseType == V {
+    private static func callForData<T, V>(_ request: T, completion: @escaping (WeblandApiResult) -> Void) -> DataRequest
+        where T: WeblandApiBaseRequestProtocol, V: Codable, T.ResponseType == V {
             
             return customAlamofire(request).responseJSON { response in
                 switch response.result {
@@ -60,9 +62,9 @@ struct WeblandApiManager {
             }
     }
     
-    // Alamofireのメソッドのみ切り出した部分
+    // Alamofire のメソッドのみ切り出した部分
     private static func customAlamofire<T>(_ request: T) -> DataRequest
-        where T: BaseRequestProtocol {
+        where T: WeblandApiBaseRequestProtocol {
             
             return Alamofire
                 .request(request)
@@ -70,15 +72,15 @@ struct WeblandApiManager {
                 .validate(contentType: contentType)
     }
     
-    // JSONをDecoderしている部分
-    private static func decodeData<T, V>(_ request: T, _ data: Data?) -> APIResult
-        where T: BaseRequestProtocol, V: Codable, T.ResponseType == V {
+    // JSON を Decoderしている部分
+    private static func decodeData<T, V>(_ request: T, _ data: Data?) -> WeblandApiResult
+        where T: WeblandApiBaseRequestProtocol, V: Codable, T.ResponseType == V {
             
             if let d = data, let result = try? JSONDecoder(type: .convertFromSnakeCase).decode(V.self, from: d) {
                 return .success(result)
                 
             } else { // Decodeエラー時はErrorResponseを返すようにしている。またdata内容も付与しておく。
-                return .failure(ErrorResponse(dataContents: String(data: data ?? Data(), encoding: .utf8)))
+                return .failure(WeblandApiErrorResponse(dataContents: String(data: data ?? Data(), encoding: .utf8)))
                 
             }
             
